@@ -5,19 +5,19 @@ use std::io::Read;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref WINNING_COMBOS: [BTreeSet<usize>; 12] = [
-        BTreeSet::from([0, 1, 2, 3, 4]),
+    static ref WINNING_COMBOS: [BTreeSet<usize>; /*12*/ 10 ] = [
+        BTreeSet::from([0, 1, 2, 3, 4]), // Rows
         BTreeSet::from([5, 6, 7, 8, 9]),
         BTreeSet::from([10, 11, 12, 13, 14]),
         BTreeSet::from([15, 16, 17, 18, 19]),
         BTreeSet::from([20, 21, 22, 23, 24]),
-        BTreeSet::from([0, 5, 10, 15, 20]),
+        BTreeSet::from([0, 5, 10, 15, 20]), // Columns
         BTreeSet::from([1, 6, 11, 16, 21]),
         BTreeSet::from([2, 7, 12, 17, 22]),
         BTreeSet::from([3, 8, 13, 18, 23]),
         BTreeSet::from([4, 9, 14, 19, 24]),
-        BTreeSet::from([0, 6, 12, 18, 24]),
-        BTreeSet::from([4, 8, 12, 16, 20]),
+        // BTreeSet::from([0, 6, 12, 18, 24]), // Diagonals
+        // BTreeSet::from([4, 8, 12, 16, 20]),
     ];
 }
 
@@ -33,8 +33,8 @@ fn main() {
     println!("{}", answer);
 }
 
-fn get_answer1(input: &str) -> i64 {
-    let (nums, mut boards) = parse_nums_and_boards(input);
+fn get_answer1(input: &str) -> i32 {
+    let (nums, mut boards) = parse_nums_and_boards(input).unwrap();
     let mut winner = None;
 
     'outer: for num in nums {
@@ -42,14 +42,10 @@ fn get_answer1(input: &str) -> i64 {
             if let Some((idx, _)) = board.iter().enumerate().find(|(_, n)| **n == num) {
                 matches.insert(idx);
             }
-        }
 
-        for (board, matches) in boards.iter() {
-            for combo in WINNING_COMBOS.iter() {
-                if matches.is_superset(combo) {
-                    winner = Some((num, board.clone(), matches.clone()));
-                    break 'outer;
-                }
+            if WINNING_COMBOS.iter().any(|c| matches.is_superset(c)) {
+                winner = Some((num, board.clone(), matches.clone()));
+                break 'outer;
             }
         }
     }
@@ -61,37 +57,27 @@ fn get_answer1(input: &str) -> i64 {
     }
 }
 
-fn get_answer2(input: &str) -> i64 {
-    let (nums, mut boards) = parse_nums_and_boards(input);
+fn get_answer2(input: &str) -> i32 {
+    let (nums, mut boards) = parse_nums_and_boards(input).unwrap();
     let mut winner = None;
 
-    'outer: for num in nums {
+    for num in nums {
         for (board, matches) in &mut boards {
             if let Some((idx, _)) = board.iter().enumerate().find(|(_, n)| **n == num) {
                 matches.insert(idx);
             }
         }
 
-        winner = Some((num, boards[0].0.clone(), boards[0].1.clone()));
-
-        boards = boards
-            .drain(..)
-            .filter(|(_, matches)| {
-                for combo in WINNING_COMBOS.iter() {
-                    if matches.is_superset(combo) {
-                        return false;
-                    }
-                }
-                true
-            })
-            .collect();
+        // Could use drain_filter when stablized to avoid clone.
+        winner = Some((num, boards[0].clone()));
+        boards.retain(|(_, matches)| !WINNING_COMBOS.iter().any(|c| matches.is_superset(c)));
 
         if boards.is_empty() {
-            break 'outer;
+            break;
         }
     }
 
-    if let Some((num, board, matches)) = winner {
+    if let Some((num, (board, matches))) = winner {
         num * score_board(&board, &matches)
     } else {
         0
@@ -100,30 +86,26 @@ fn get_answer2(input: &str) -> i64 {
 
 fn parse_nums_and_boards(
     input: &str,
-) -> (
-    impl Iterator<Item = i64> + '_,
-    Vec<(Vec<i64>, BTreeSet<usize>)>,
-) {
+) -> Option<(
+    impl Iterator<Item = i32> + '_,
+    Vec<(Vec<i32>, BTreeSet<usize>)>,
+)> {
     let mut iter = input.split("\n\n");
-    let nums = iter
-        .next()
-        .unwrap()
-        .split(',')
-        .map(|n| n.parse::<i64>().unwrap());
+    let nums = iter.next()?.split(',').flat_map(str::parse::<i32>);
 
     let boards = iter
         .map(|b| {
             b.split_whitespace()
-                .map(|n| n.parse::<i64>().unwrap())
+                .flat_map(str::parse::<i32>)
                 .collect::<Vec<_>>()
         })
         .map(|board| (board, BTreeSet::<usize>::new()))
         .collect::<Vec<_>>();
 
-    (nums, boards)
+    Some((nums, boards))
 }
 
-fn score_board(board: &[i64], matches: &BTreeSet<usize>) -> i64 {
+fn score_board(board: &[i32], matches: &BTreeSet<usize>) -> i32 {
     board
         .iter()
         .enumerate()
