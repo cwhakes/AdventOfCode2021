@@ -6,14 +6,14 @@ fn main() {
     let mut file = File::open("input").unwrap();
     file.read_to_string(&mut buf).unwrap();
 
-    let answer = get_answer1(&buf);
+    let answer = get_answer(&buf, false);
     println!("{}", answer);
 
-    let answer = get_answer2(&buf);
+    let answer = get_answer(&buf, true);
     println!("{}", answer);
 }
 
-fn get_answer1(input: &str) -> i32 {
+fn get_answer(input: &str, include_diagonals: bool) -> i32 {
     let segments: Vec<_> = input.lines().flat_map(Segment::from_str).collect();
 
     let x_max = segments.iter().map(|s| s.x1.max(s.x2)).max().unwrap();
@@ -22,25 +22,11 @@ fn get_answer1(input: &str) -> i32 {
     let mut count = 0;
     for x in 0..=x_max {
         for y in 0..=y_max {
-            if 2 <= segments.iter().filter(|s| s.contains((x, y))).count() {
-                count += 1;
-            }
-        }
-    }
-
-    count
-}
-
-fn get_answer2(input: &str) -> i32 {
-    let segments: Vec<_> = input.lines().flat_map(Segment::from_str).collect();
-
-    let x_max = segments.iter().map(|s| s.x1.max(s.x2)).max().unwrap();
-    let y_max = segments.iter().map(|s| s.y1.max(s.y2)).max().unwrap();
-
-    let mut count = 0;
-    for x in 0..=x_max {
-        for y in 0..=y_max {
-            if 2 <= segments.iter().filter(|s| s.contains2((x, y))).count() {
+            if 2 <= segments
+                .iter()
+                .filter(|s| s.contains((x, y), include_diagonals))
+                .count()
+            {
                 count += 1;
             }
         }
@@ -71,19 +57,17 @@ impl Segment {
         })
     }
 
-    fn contains(&self, (x, y): (i32, i32)) -> bool {
-        let Self { x1, y1, x2, y2 } = *self;
-        (x == x1 && x == x2 && ((y1..=y2).contains(&y) || (y2..=y1).contains(&y)))
-            || (y == y1 && y == y2 && ((x1..=x2).contains(&x) || (x2..=x1).contains(&x)))
-    }
+    fn contains(&self, (x, y): (i32, i32), include_diagonals: bool) -> bool {
+        fn within_span(x: i32, (x1, x2): (i32, i32)) -> bool {
+            (x1..=x2).contains(&x) || (x2..=x1).contains(&x)
+        }
 
-    fn contains2(&self, (x, y): (i32, i32)) -> bool {
         let Self { x1, y1, x2, y2 } = *self;
-        (x == x1 && x == x2 && ((y1..=y2).contains(&y) || (y2..=y1).contains(&y)))
-            || (y == y1 && y == y2 && ((x1..=x2).contains(&x) || (x2..=x1).contains(&x)))
-            || ((x - x1).abs() == (y - y1).abs()
-                && (x - x2).abs() == (y - y2).abs()
-                && ((x1..=x2).contains(&x) || (x2..=x1).contains(&x))
-                && ((y1..=y2).contains(&y) || (y2..=y1).contains(&y)))
+        (within_span(y, (y1, y2)) && within_span(x, (x1, x2)))
+            && ((x == x1 && x == x2)
+                || (y == y1 && y == y2)
+                || (include_diagonals
+                    && (x - x1).abs() == (y - y1).abs()
+                    && (x - x2).abs() == (y - y2).abs()))
     }
 }
