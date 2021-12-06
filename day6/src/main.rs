@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Read;
 
@@ -15,7 +14,7 @@ fn main() {
 }
 
 fn get_answer(input: &str, days: usize) -> i64 {
-    let mut jellies = VecDeque::from([0i64; 9]);
+    let mut jellies = [0i64; 9];
     for jelly in input.split(',').map(|s| s.trim().parse::<usize>().unwrap()) {
         jellies[jelly] += 1;
     }
