@@ -97,27 +97,9 @@ impl Packet {
             2 => packets.iter().map(|p| p.num).min().unwrap(),
             3 => packets.iter().map(|p| p.num).max().unwrap(),
 
-            5 => {
-                if packets[0].num > packets[1].num {
-                    1
-                } else {
-                    0
-                }
-            }
-            6 => {
-                if packets[0].num < packets[1].num {
-                    1
-                } else {
-                    0
-                }
-            }
-            7 => {
-                if packets[0].num == packets[1].num {
-                    1
-                } else {
-                    0
-                }
-            }
+            5 => (packets[0].num > packets[1].num) as i64,
+            6 => (packets[0].num < packets[1].num) as i64,
+            7 => (packets[0].num == packets[1].num) as i64,
 
             _ => 0,
         };
